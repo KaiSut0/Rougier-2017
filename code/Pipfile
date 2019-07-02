@@ -1,0 +1,18 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+numpy = "*"
+matplotlib = "*"
+tqdm = "*"
+pillow = "*"
+imageio = "*"
+scipy = "==1.1.0"
+shapely = "*"
+
+[requires]
+python_version = "3.7"

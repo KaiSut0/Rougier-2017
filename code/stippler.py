@@ -42,8 +42,12 @@
 import tqdm
 import voronoi
 import os.path
+from shapely.ops import polygonize, unary_union
+from shapely.geometry import MultiPoint, Point, Polygon, LineString, MultiPolygon
+from scipy.spatial import Voronoi, voronoi_plot_2d
 import scipy.misc
 import scipy.ndimage
+import scipy.spatial
 import numpy as np
 
 def normalize(D):
@@ -221,6 +225,7 @@ if __name__ == '__main__':
     elif not os.path.exists(dat_filename) or args.force:
         for i in tqdm.trange(args.n_iter):
             regions, points = voronoi.centroids(points, density, density_P, density_Q)
+            
 
             
     if (args.save or args.display) and not args.interactive:
@@ -240,6 +245,30 @@ if __name__ == '__main__':
                  (args.pointsize[1]-args.pointsize[0])*density[Y, X])
         scatter.set_offsets(points)
         scatter.set_sizes(sizes)
+
+        vor = Voronoi(points)
+        lines = [
+            LineString(vor.vertices[line])
+            for line in vor.ridge_vertices if -1 not in line
+            ]
+        
+        convex_hull = MultiPoint([Point(i) for i in points]).convex_hull.buffer(2)
+        result = MultiPolygon(
+            [poly.intersection(convex_hull) for poly in polygonize(lines)])
+        result = MultiPolygon(
+            [p for p in result]
+            + [p for p in convex_hull.difference(unary_union(result))])
+
+        plt.plot(points[:,0], points[:,1], 'ko')
+        for r in result:
+            plt.fill(*zip(*np.array(list(
+                zip(r.boundary.coords.xy[0][:-1], r.boundary.coords.xy[1][:-1])))),
+                alpha=0.4)
+        plt.show()
+
+        print (type(vor))
+        fig2 = voronoi_plot_2d(vor)
+        fig2.savefig(png_filename)
 
         # Save stipple points and tippled image
         if not os.path.exists(dat_filename) or args.save:
